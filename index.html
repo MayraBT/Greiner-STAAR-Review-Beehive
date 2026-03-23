@@ -5963,27 +5963,43 @@ function StudentMode(){
     const loadFlags=async()=>{
       const flags={};
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('timeout')), 5000)
+        setTimeout(() => reject(new Error('timeout')), 10000) // Increased to 10 seconds
       );
       
       for(const ticket of TICKETS){
-        try{
-          const storageKey = `active:ticket${ticket.id}:${student.t}`;
-          const r = await Promise.race([
-            window.storage.get(storageKey,true),
-            timeoutPromise
-          ]);
-          flags[ticket.id]=r?.value==="1";
-          console.log(`[STUDENT DEBUG] Quest ${ticket.id}: key="${storageKey}", value="${r?.value}", isActive=${flags[ticket.id]}`);
-        }
-        catch(e){
-          flags[ticket.id]=false;
-          if(e.message !== 'timeout') {
-            console.error(`[STUDENT DEBUG ERROR] Quest ${ticket.id}:`, e);
+        let retries = 2; // Retry twice on failure
+        let success = false;
+        
+        while(retries > 0 && !success) {
+          try{
+            const storageKey = `active:ticket${ticket.id}:${student.t}`;
+            const r = await Promise.race([
+              window.storage.get(storageKey,true),
+              timeoutPromise
+            ]);
+            flags[ticket.id]=r?.value==="1";
+            console.log(`[STUDENT DEBUG] Quest ${ticket.id}: key="${storageKey}", value="${r?.value}", isActive=${flags[ticket.id]}`);
+            success = true;
+          }
+          catch(e){
+            retries--;
+            if(retries === 0) {
+              // Only set to false after all retries exhausted
+              flags[ticket.id]=false;
+              if(e.message !== 'timeout') {
+                console.error(`[STUDENT DEBUG ERROR] Quest ${ticket.id}:`, e);
+              } else {
+                console.warn(`[STUDENT DEBUG] Quest ${ticket.id} timed out after retries, defaulting to locked`);
+              }
+            } else {
+              console.log(`[STUDENT DEBUG] Quest ${ticket.id} read failed, retrying...`);
+              await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+            }
           }
         }
       }
       setActivated(flags);
+      setLastCheck(new Date().toLocaleTimeString());
     };
     loadFlags();
     // Poll every 10 seconds for teacher updates (reduced to minimize storage load)
