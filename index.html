@@ -6641,10 +6641,10 @@ function TeacherDashboard({teacherKey}){
   const [toggling,setToggling]=useState({});
   const [copyMsg,setCopyMsg]=useState("");
 
-  const loadAll=useCallback(async()=>{
+  const loadSubmissions=useCallback(async()=>{
     setLoading(true);
     try{
-      // Load submissions
+      // Load submissions only - activations are managed separately
       const result=await window.storage.list("ticket",true);
       const keys=result?.keys||[];
       const newSubs={};
@@ -6656,24 +6656,39 @@ function TeacherDashboard({teacherKey}){
         }catch(e){}
       }
       setSubs(newSubs);
-      // Load activation flags (teacher-specific)
-      const flags={};
-      for(const ticket of TICKETS){
-        try{const r=await window.storage.get(`active:ticket${ticket.id}:${teacherKey}`,true);flags[ticket.id]=r?.value==="1";}
-        catch(e){flags[ticket.id]=false;}
-      }
-      setActivations(flags);
       setLR(new Date().toLocaleTimeString());
     }catch(e){console.error(e);}
     setLoading(false);
+  },[]);
+
+  const loadActivations=useCallback(async()=>{
+    // Load activation flags once on dashboard mount
+    const flags={};
+    for(const ticket of TICKETS){
+      try{const r=await window.storage.get(`active:ticket${ticket.id}:${teacherKey}`,true);flags[ticket.id]=r?.value==="1";}
+      catch(e){flags[ticket.id]=false;}
+    }
+    setActivations(flags);
   },[teacherKey]);
 
-  useEffect(()=>{loadAll();const t=setInterval(loadAll,30000);return()=>clearInterval(t);},[loadAll]);
+  useEffect(()=>{
+    // Load activations once on mount
+    loadActivations();
+  },[loadActivations]);
+
+  useEffect(()=>{
+    // Load submissions on mount and every 30 seconds
+    loadSubmissions();
+    const t=setInterval(loadSubmissions,30000);
+    return()=>clearInterval(t);
+  },[loadSubmissions]);
 
   const toggleActivation=async(qId)=>{
     console.log(`[TEACHER DEBUG] Toggling Quest ${qId} for teacher "${teacherKey}"`);
-    setToggling(t=>({...t,[qId]:true}));
     const next=!activations[qId];
+    // Update local state IMMEDIATELY (optimistic update)
+    setActivations(a=>({...a,[qId]:next}));
+    setToggling(t=>({...t,[qId]:true}));
     console.log(`[TEACHER DEBUG] Quest ${qId} will be set to: ${next?"ACTIVE":"LOCKED"}`);
     try{
       const storageKey = `active:ticket${qId}:${teacherKey}`;
@@ -6686,15 +6701,15 @@ function TeacherDashboard({teacherKey}){
         action: next ? "activated" : "deactivated",
         timestamp: new Date().toISOString()
       });
-      setActivations(a=>({...a,[qId]:next}));
       console.log(`[TEACHER DEBUG] ✓ Quest ${qId} successfully toggled to ${next?"ACTIVE":"LOCKED"}`);
       // Verify it was saved
       const verify = await window.storage.get(storageKey,true);
       console.log(`[TEACHER DEBUG] Verification read: value="${verify?.value}"`);
-      // Show success message briefly
       setTimeout(()=>setToggling(t=>({...t,[qId]:false})),500);
     }catch(e){
       console.error(`[TEACHER DEBUG ERROR] Quest ${qId}:`,e);
+      // Revert on error
+      setActivations(a=>({...a,[qId]:!next}));
       setToggling(t=>({...t,[qId]:false}));
     }
   };
@@ -7396,6 +7411,7 @@ function App(){
       </div>
     </div>
   );
+}
 }
 
 ReactDOM.render(<App />, document.getElementById('root'));
