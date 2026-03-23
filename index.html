@@ -6772,7 +6772,7 @@ function TeacherDashboard({teacherKey}){
         <div style={{fontSize:11,fontFamily:"monospace",color:RB.muted}}>
           {totalSubs} total submissions · Last: {lastRefresh||"—"}{loading&&" · 🔄"}
         </div>
-        <PixelBtn onClick={loadAll} bg={RB.teal} sm>🔄 REFRESH</PixelBtn>
+        <PixelBtn onClick={loadSubmissions} bg={RB.teal} sm>🔄 REFRESH</PixelBtn>
       </div>
 
       <div style={{padding:"16px",maxWidth:1100,margin:"0 auto"}}>
