@@ -4,11 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Greiner Beehive - STAAR Quest</title>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <style>
     body { margin: 0; padding: 0; font-family: system-ui, sans-serif; }
     #root { width: 100%; min-height: 100vh; }
@@ -16,6 +11,15 @@
 </head>
 <body>
   <div id="root"></div>
+  
+  <!-- Load libraries first -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Initialize Firebase after libraries load -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyCKV7y06kNXizQTQ-CXVX3OXfh01bevGH0",
@@ -7427,7 +7431,6 @@ function App(){
       </div>
     </div>
   );
-}
 }
 
 ReactDOM.render(<App />, document.getElementById('root'));
