@@ -501,8 +501,8 @@ const TRACKER_ORDER = {
 };
 
 const PASSWORDS = {
-  Chinchia:"CHINCHIA1", Linam:"LINAM2", Wang:"WANG3", Ojeda:"OJEDA4",
-  Bermudez:"GAMEMASTER", leaderboard:"LEADERS26",
+  Chinchia:"CHINCHIA2026", Linam:"LINAM2026", Wang:"WANG2026", Ojeda:"OJEDA2026",
+  Bermudez:"GAMEMASTER2026", leaderboard:"LEADERBOARD2026",
 };
 const TEACHERS = ["Chinchia","Linam","Wang","Ojeda"];
 const PERIODS  = ["1st-2nd","3rd-4th","5th-6th","7th-8th"];
@@ -5958,6 +5958,8 @@ function StudentMode(){
   const [regName,setRegName]=useState("");
   const [regTeacher,setRegTeacher]=useState("");
   const [regPeriod,setRegPeriod]=useState("");
+  const [timeRemaining,setTimeRemaining]=useState(480); // 8 minutes in seconds
+  const [timerActive,setTimerActive]=useState(false);
 
   // Load activation flags + previous scores
   useEffect(()=>{
@@ -6009,6 +6011,40 @@ function StudentMode(){
     const interval=setInterval(loadFlags,10000);
     return()=>clearInterval(interval);
   },[student?.t]);
+
+  // Timer countdown effect
+  useEffect(()=>{
+    if(!timerActive || submitted)return;
+    if(timeRemaining <= 0){
+      // Time's up - auto submit
+      setTimerActive(false);
+      handleSubmit();
+      return;
+    }
+    const timer = setInterval(()=>{
+      setTimeRemaining(prev => prev - 1);
+    }, 1000);
+    return ()=>clearInterval(timer);
+  },[timerActive, timeRemaining, submitted]);
+
+  // Block copy/paste keyboard shortcuts during quest
+  useEffect(()=>{
+    if(!activeQuest)return;
+    const blockKeys = (e) => {
+      // Block Ctrl+C, Ctrl+A, Ctrl+X, Cmd+C, Cmd+A, Cmd+X, F12
+      if((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'a' || e.key === 'x')){
+        e.preventDefault();
+        return false;
+      }
+      // Block F12 (developer console)
+      if(e.key === 'F12'){
+        e.preventDefault();
+        return false;
+      }
+    };
+    document.addEventListener('keydown', blockKeys);
+    return () => document.removeEventListener('keydown', blockKeys);
+  },[activeQuest]);
 
   // Load previous scores when student logs in
   const reloadScores = useCallback(async()=>{
@@ -6077,6 +6113,8 @@ function StudentMode(){
       console.log("[START QUEST] No previous submission found for quest",qId);
     }
     setActiveQuest(qId);setAns({q1:null,q2:null,q3:null});setSubmit(false);setShowScore(false);setSaveStatus("idle");
+    setTimeRemaining(480); // Reset to 8 minutes
+    setTimerActive(true);  // Start timer
   };
 
   const qDefs=activeQuest?TICKET_QUESTIONS[activeQuest]:null;
@@ -6092,6 +6130,7 @@ function StudentMode(){
   };
 
   const handleSubmit=async()=>{
+    setTimerActive(false); // Stop timer
     setSubmit(true);setSaveStatus("saving");
     const sc=calcScore();
     const totalPossible=calcTotalPossible();
@@ -6118,6 +6157,8 @@ function StudentMode(){
     setSubmit(false);
     setShowScore(false);
     setSaveStatus("idle");
+    setTimerActive(false); // Stop timer on reset
+    setTimeRemaining(480); // Reset timer
     // Reload scores multiple times with increasing delays to handle storage propagation
     setTimeout(()=>reloadScores(),1000);
     setTimeout(()=>reloadScores(),3000);
@@ -6246,8 +6287,21 @@ function StudentMode(){
   // ── Quest in progress ──
   if(idLocked&&activeQuest){
     const quest=TICKETS.find(q=>q.id===activeQuest);
+    
+    // Anti-copy event handlers
+    const preventCopy = (e) => {
+      e.preventDefault();
+      return false;
+    };
+    
     return(
-      <div style={{maxWidth:800,margin:"0 auto",padding:"20px 16px 40px"}}>
+      <div style={{maxWidth:800,margin:"0 auto",padding:"20px 16px 40px",userSelect:"none",WebkitUserSelect:"none"}}
+        onCopy={preventCopy}
+        onCut={preventCopy}
+        onPaste={preventCopy}
+        onContextMenu={preventCopy}
+        onDragStart={preventCopy}
+        onSelectStart={preventCopy}>
         {/* Quest header */}
         <div style={{background:zone.bg,border:`2px solid ${zone.accent}`,borderTop:`6px solid ${zone.accent}`,
           padding:"12px 18px",marginBottom:18,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
@@ -6257,8 +6311,18 @@ function StudentMode(){
             </div>
             <div style={{fontFamily:"monospace",fontSize:11,color:RB.muted}}>{quest.teks}</div>
           </div>
-          <div style={{fontFamily:"monospace",fontSize:11,color:RB.muted}}>
-            {student.n} · {student.t} · P{student.p}
+          <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+            {timerActive && !submitted && (
+              <div style={{fontFamily:"monospace",fontSize:14,fontWeight:"bold",
+                color:timeRemaining <= 60 ? RB.red : timeRemaining <= 120 ? RB.orange : zone.accent,
+                padding:"6px 12px",border:`2px solid ${timeRemaining <= 60 ? RB.red : timeRemaining <= 120 ? RB.orange : zone.accent}`,
+                background:timeRemaining <= 60 ? "#FFEBEE" : timeRemaining <= 120 ? "#FFF3E0" : "transparent"}}>
+                ⏱ {Math.floor(timeRemaining/60)}:{(timeRemaining%60).toString().padStart(2,'0')}
+              </div>
+            )}
+            <div style={{fontFamily:"monospace",fontSize:11,color:RB.muted}}>
+              {student.n} · {student.t} · P{student.p}
+            </div>
           </div>
         </div>
         {/* Questions */}
