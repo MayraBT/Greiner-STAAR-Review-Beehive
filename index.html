@@ -2733,7 +2733,7 @@ function Q8A({submitted,onAnswer,initialSel}){
   const [sel,setSel]=useState(initialSel||null);
   const Frac=({n,d})=><span style={{display:"inline-block",textAlign:"center",verticalAlign:"middle",margin:"0 2px"}}><span style={{display:"block",borderBottom:"1px solid currentColor",padding:"0 4px"}}>{n}</span><span style={{display:"block",padding:"0 4px"}}>{d}</span></span>;
   const opts=[
-    {id:"A",text:<span><Frac n="5" d="12"/> = <Frac n="15" d="x"/></span>},
+    {id:"A",text:<span><Frac n="5" d="12"/> = <Frac n="x" d="15"/></span>},
     {id:"B",text:<span><Frac n="5" d="15"/> = <Frac n="12" d="x"/></span>},
     {id:"C",text:<span><Frac n="5" d="15"/> = <Frac n="x" d="12"/></span>},
     {id:"D",text:<span><Frac n="x" d="5"/> = <Frac n="12" d="15"/></span>}
